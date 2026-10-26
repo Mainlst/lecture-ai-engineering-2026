@@ -14,15 +14,21 @@ import argparse
 
 from google import genai
 from google.genai import errors
+from openai import OpenAI, OpenAIError
 
-from app.config import MODEL, api_error_message, get_api_key
+from app.config import MODEL, PROVIDER, api_error_message, get_api_key
 
 # 講座に固有の質問。正しい答えは data/glossary.json の homework-levels にある
 DEFAULT_QUESTION = "AIE2026の講座の宿題にある「3レベル」とは何ですか？"
 
 
 def ask(question: str) -> str:
-    client = genai.Client(api_key=get_api_key())
+    if PROVIDER == "openai":
+        client = OpenAI(api_key=get_api_key("openai"))
+        response = client.responses.create(model=MODEL, input=question)
+        return response.output_text
+
+    client = genai.Client(api_key=get_api_key("google"))
     response = client.models.generate_content(model=MODEL, contents=question)
 
     # TODO(第1回 演習): response.usage_metadata から
@@ -42,6 +48,10 @@ def main() -> None:
         print(ask(args.question))
     except errors.APIError as e:
         print(api_error_message(e.code, e.message))
+        raise SystemExit(1)
+    except OpenAIError as e:
+        status = getattr(e, "status_code", None) or 0
+        print(api_error_message(status, str(e)[:200]))
         raise SystemExit(1)
 
 

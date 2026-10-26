@@ -22,11 +22,13 @@ from fastmcp import Client
 from pydantic_ai.mcp import MCPToolset, StdioTransport
 from pydantic_ai.messages import ToolCallPart, ToolReturnPart
 from pydantic_ai.models.google import GoogleModel
+from pydantic_ai.models.openai import OpenAIResponsesModel
 from pydantic_ai.models.test import TestModel
 from pydantic_ai.providers.google import GoogleProvider
+from pydantic_ai.providers.openai import OpenAIProvider
 
 from app import tools
-from app.config import MODEL, api_error_message, get_api_key
+from app.config import MODEL, PROVIDER, api_error_message, get_api_key
 
 INSTRUCTIONS = """\
 あなたはAIエンジニアリング講座（AIE2026）の学習支援エージェントです。
@@ -76,8 +78,10 @@ def build_mcp_agent(config_path: Path = MCP_CONFIG) -> Agent:
     return Agent(instructions=INSTRUCTIONS, toolsets=load_mcp_servers(config_path))
 
 
-def build_model() -> GoogleModel:
-    return GoogleModel(MODEL, provider=GoogleProvider(api_key=get_api_key()))
+def build_model() -> GoogleModel | OpenAIResponsesModel:
+    if PROVIDER == "openai":
+        return OpenAIResponsesModel(MODEL, provider=OpenAIProvider(api_key=get_api_key("openai")))
+    return GoogleModel(MODEL, provider=GoogleProvider(api_key=get_api_key("google")))
 
 
 def print_tools(target: Agent) -> None:
@@ -125,6 +129,7 @@ def main() -> None:
         parser.error("質問を指定してください")
 
     print(f"[model] {MODEL}")
+    print(f"[provider] {PROVIDER}")
     if args.mcp:
         print("[tools] MCP サーバー（app/mcp_servers.json）")
     try:
