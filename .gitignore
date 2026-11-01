@@ -12,3 +12,9 @@ learning_log/
 
 # macOS
 .DS_Store
+
+# ローカル LoRA 演習の仮想環境と大きな学習成果物
+.venv-lora/
+**/qlora_lab/ckpt/
+**/qlora_lab/adapter/
+.ipynb_checkpoints/
