@@ -43,18 +43,26 @@ async def ask(
             async for event in runner.run_async(
                 user_id=USER_ID,
                 session_id=session_id,
-                new_message=types.Content(role="user", parts=[types.Part(text=question)]),
+                new_message=types.Content(
+                    role="user", parts=[types.Part(text=question)]
+                ),
             ):
                 if event.error_code:
-                    raise RuntimeError(f"{event.error_code}: {event.error_message or '詳細なし'}")
+                    raise RuntimeError(
+                        f"{event.error_code}: {event.error_message or '詳細なし'}"
+                    )
                 for call in event.get_function_calls():
                     print(f"[ツール実行] {call.name}", flush=True)
                 for response in event.get_function_responses():
-                    print(f"[ツール完了] {response.name}。回答を待っています…", flush=True)
+                    print(
+                        f"[ツール完了] {response.name}。回答を待っています…", flush=True
+                    )
 
                 if event.is_final_response() and event.content and event.content.parts:
                     answer = "".join(
-                        part.text for part in event.content.parts if part.text and not part.thought
+                        part.text
+                        for part in event.content.parts
+                        if part.text and not part.thought
                     )
                     if answer:
                         print(f"\n{answer}\n", flush=True)
@@ -91,9 +99,16 @@ async def run(question: str | None, timeout: float) -> None:
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="進行状況を表示する学習支援エージェント")
+    parser = argparse.ArgumentParser(
+        description="進行状況を表示する学習支援エージェント"
+    )
     parser.add_argument("question", nargs="?", help="1回だけ質問して終了する")
-    parser.add_argument("--timeout", type=float, default=DEFAULT_TIMEOUT, help="1回の質問の待機上限（秒、既定: 60）")
+    parser.add_argument(
+        "--timeout",
+        type=float,
+        default=DEFAULT_TIMEOUT,
+        help="1回の質問の待機上限（秒、既定: 60）",
+    )
     args = parser.parse_args()
     if args.timeout <= 0:
         parser.error("--timeout は 0 より大きい秒数を指定してください")
@@ -103,7 +118,10 @@ def main() -> int:
         print("\n中断しました。", file=sys.stderr)
         return 130
     except TimeoutError:
-        print(f"\n[タイムアウト] {args.timeout:g}秒以内に回答を受け取れませんでした。", file=sys.stderr)
+        print(
+            f"\n[タイムアウト] {args.timeout:g}秒以内に回答を受け取れませんでした。",
+            file=sys.stderr,
+        )
         return 1
     except Exception as exc:
         print(f"\n[エラー] {type(exc).__name__}: {exc}", file=sys.stderr)
