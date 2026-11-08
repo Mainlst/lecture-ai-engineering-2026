@@ -1,6 +1,7 @@
 .venv/
 __pycache__/
 .pytest_cache/
+.adk/
 *.pyc
 
 # 秘密情報はコミットしない（APIキーは Codespaces secret で渡す）
