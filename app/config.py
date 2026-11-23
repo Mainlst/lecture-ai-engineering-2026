@@ -26,6 +26,22 @@ if PROVIDER not in DEFAULT_MODELS:
     raise SystemExit("AIE_PROVIDER は 'google' または 'openai' を指定してください。")
 MODEL = os.getenv("AIE_MODEL", DEFAULT_MODELS[PROVIDER])
 
+# 第5回: 1ページを1チャンクとして検索する。索引はscripts/build_rag_index.pyで作成する。
+ROOT = Path(__file__).resolve().parent.parent
+RAG_SOURCE = ROOT / "data/rag_data/lectures.json"
+RAG_TREE = ROOT / "data/rag_data/tree.json"
+RAG_GRAPH = ROOT / "data/rag_data/graph.json"
+RAG_DB = Path(os.getenv("AIE_RAG_DB", str(ROOT / "data/rag_data/index.sqlite3")))
+RAG_DOCUMENT_IDS = ("lec01-main", "lec02-main", "lec03-main")
+RAG_TOP_K = 5
+GRAPH_START_K = 3
+GRAPH_HOPS = 2
+GRAPH_MAX_RESULTS = 10
+EMBEDDING_MODEL = "gemini-embedding-001"
+EMBEDDING_DIMENSIONS = 768
+# 2,048トークンの上限に対し、タスク指定等の分を残す。超過時は切り捨てず停止する。
+EMBEDDING_MAX_TOKENS = 2000
+
 
 def api_error_message(status: int, detail: str = "") -> str:
     """HTTPステータスコードを、受講生向けの日本語の説明にする（ask.py と agent.py で共用）。"""
@@ -48,3 +64,17 @@ def get_api_key(provider: str = PROVIDER) -> str:
             f"リポジトリ直下の .env に {env_name}=... を設定するか、環境変数を設定してください。"
         )
     return key
+
+
+def build_model():
+    """選択したプロバイダーの生成モデルを作る。"""
+    if PROVIDER == "openai":
+        from pydantic_ai.models.openai import OpenAIResponsesModel
+        from pydantic_ai.providers.openai import OpenAIProvider
+
+        return OpenAIResponsesModel(MODEL, provider=OpenAIProvider(api_key=get_api_key("openai")))
+
+    from pydantic_ai.models.google import GoogleModel
+    from pydantic_ai.providers.google import GoogleProvider
+
+    return GoogleModel(MODEL, provider=GoogleProvider(api_key=get_api_key("google")))
